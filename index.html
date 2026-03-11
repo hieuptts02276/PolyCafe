@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PolyCafe Fluent Manager</title>
+  <style>
+    :root {
+      --bg1: #0f172a;
+      --bg2: #1e293b;
+      --card: rgba(255, 255, 255, 0.1);
+      --stroke: rgba(255, 255, 255, 0.25);
+      --text: #f8fafc;
+      --accent: #60a5fa;
+      --good: #34d399;
+      --warn: #f59e0b;
+      --bad: #f87171;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Segoe UI Variable", "Segoe UI Historic", "Helvetica Neue", Arial, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #334155 0%, #1f2937 30%, #0f172a 75%);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    .app {
+      width: min(1300px, 100%);
+      border-radius: 32px;
+      padding: 24px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.17), rgba(255,255,255,0.06));
+      border: 1px solid rgba(255,255,255,0.25);
+      box-shadow: 0 35px 80px rgba(2, 6, 23, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+      backdrop-filter: blur(20px) saturate(130%);
+      position: relative;
+      overflow: hidden;
+      animation: riseIn .9s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: -120px auto auto -120px;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(147,197,253,0.5), transparent 70%);
+      animation: floatLight 8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .app::after {
+      content: "";
+      position: absolute;
+      inset: auto -130px -130px auto;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(167,139,250,0.45), transparent 70%);
+      animation: floatLight 10s ease-in-out infinite reverse;
+      pointer-events: none;
+    }
+
+    .rounded-block {
+      border-radius: var(--radius);
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      transition: transform .25s ease, box-shadow .25s ease, background .25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .rounded-block:hover { transform: translateY(-2px); box-shadow: 0 16px 35px rgba(0, 0, 0, 0.45); }
+    .rounded-block:active { transform: translateY(1px) scale(0.995); }
+
+    h1, h2, h3, p { margin: 0; }
+
+    .header {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+
+    .glow { color: #dbeafe; text-shadow: 0 0 18px rgba(96,165,250,0.7); }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1.4fr 1fr 1fr;
+    }
+
+    .panel { padding: 16px; }
+
+    .toolbar, .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .toolbar { margin-top: 10px; }
+
+    button, input, select {
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.1);
+      color: var(--text);
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: all .22s ease;
+      outline: none;
+    }
+
+    input::placeholder { color: #cbd5e1; }
+    button { cursor: pointer; }
+    button:hover, select:hover, input:hover { background: rgba(255,255,255,0.18); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25); }
+    button:focus-visible, input:focus-visible, select:focus-visible { box-shadow: 0 0 0 3px rgba(96,165,250,0.4); }
+
+    .primary { background: linear-gradient(135deg, #2563eb, #0ea5e9); }
+    .danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .success { background: linear-gradient(135deg, #059669, #16a34a); }
+
+    .menu-list, .order-list, .table-list, .inventory-list, .history-list {
+      margin-top: 12px;
+      display: grid;
+      gap: 8px;
+      max-height: 260px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .item {
+      padding: 10px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.48);
+      border: 1px solid rgba(255,255,255,0.18);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .muted { opacity: .85; font-size: 13px; }
+    .badge { padding: 4px 8px; border-radius: 999px; font-size: 12px; }
+    .occupied { background: rgba(239,68,68,0.2); }
+    .free { background: rgba(16,185,129,0.2); }
+
+    .totals { margin-top: 12px; display: grid; gap: 6px; }
+    .line { display: flex; justify-content: space-between; }
+    .final { font-size: 20px; font-weight: 700; color: #bfdbfe; }
+
+    .message { min-height: 20px; margin-top: 8px; font-size: 13px; }
+
+    @keyframes riseIn {
+      from { transform: translateY(18px) scale(.98); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    @keyframes floatLight {
+      0%,100% { transform: translateY(0px) translateX(0px); }
+      50% { transform: translateY(18px) translateX(10px); }
+    }
+
+    @media (max-width: 1080px) { .grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="app rounded-block">
+    <section class="header rounded-block">
+      <div>
+        <h1 class="glow">PolyCafe Fluent Manager</h1>
+        <p class="muted">Quản lí quán cafe theo Fluent Design — hiệu ứng trong suốt, chiều sâu, ánh sáng & chuyển động.</p>
+      </div>
+      <div class="rounded-block" style="padding:10px 14px;">
+        <strong id="clock"></strong>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="panel rounded-block">
+        <h2>1) Quản lí Menu & tạo order</h2>
+        <div class="toolbar">
+          <input id="newDrink" placeholder="Tên món" />
+          <input id="newPrice" placeholder="Giá" type="number" min="1000" step="1000" />
+          <button id="addDrink" class="primary">Thêm món</button>
+        </div>
+        <div id="menuList" class="menu-list"></div>
+      </article>
+
+      <article class="panel rounded-block">
+        <h2>2) Quản lí bàn</h2>
+        <div class="toolbar">
+          <input id="tableName" placeholder="Tên bàn (VD: Bàn 01)" />
+          <button id="addTable">Thêm bàn</button>
+        </div>
+        <div id="tableList" class="table-list"></div>
+      </article>
+
+      <article class="panel rounded-block">
+        <h2>3) Tồn kho nguyên liệu</h2>
+        <div class="toolbar">
+          <select id="ingredientSelect"></select>
+          <input id="restockAmount" type="number" min="1" placeholder="Số lượng nhập" />
+          <button id="restockBtn" class="success">Nhập kho</button>
+        </div>
+        <div id="inventoryList" class="inventory-list"></div>
+      </article>
+
+      <article class="panel rounded-block">
+        <h2>4) Giỏ gọi món / chỉnh số lượng</h2>
+        <div id="orderList" class="order-list"></div>
+        <p id="orderMessage" class="message"></p>
+      </article>
+
+      <article class="panel rounded-block">
+        <h2>5) Thanh toán + mã giảm giá</h2>
+        <div class="toolbar">
+          <select id="discountCode">
+            <option value="">Không mã giảm giá</option>
+            <option value="CAFE10">CAFE10 - giảm 10%</option>
+            <option value="VIP20">VIP20 - giảm 20%</option>
+          </select>
+          <button id="applyDiscount">Áp dụng</button>
+        </div>
+        <div class="totals">
+          <div class="line"><span>Tạm tính</span><strong id="subtotal">0đ</strong></div>
+          <div class="line"><span>VAT (8%)</span><strong id="vat">0đ</strong></div>
+          <div class="line"><span>Phí phục vụ (5%)</span><strong id="service">0đ</strong></div>
+          <div class="line"><span>Giảm giá</span><strong id="discount">0đ</strong></div>
+          <div class="line final"><span>Tổng thanh toán</span><span id="total">0đ</span></div>
+        </div>
+        <div class="toolbar" style="margin-top:12px;">
+          <button id="checkoutBtn" class="primary">Thanh toán</button>
+          <button id="clearOrder" class="danger">Hủy order</button>
+        </div>
+      </article>
+
+      <article class="panel rounded-block">
+        <h2>6) Lịch sử bán hàng + xuất CSV</h2>
+        <div class="toolbar">
+          <button id="exportCsv">Xuất CSV</button>
+          <button id="clearHistory" class="danger">Xóa lịch sử</button>
+        </div>
+        <div id="historyList" class="history-list"></div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const VND = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
+
+    const recipe = {
+      'Espresso': { coffee: 2, milk: 0, sugar: 1 },
+      'Latte': { coffee: 2, milk: 2, sugar: 1 },
+      'Cappuccino': { coffee: 2, milk: 2, sugar: 1 },
+      'Americano': { coffee: 2, milk: 0, sugar: 1 },
+      'Bạc xỉu': { coffee: 1, milk: 3, sugar: 2 },
+      'Trà đào': { coffee: 0, milk: 0, sugar: 2 }
+    };
+
+    const state = {
+      menu: JSON.parse(localStorage.getItem('pc_menu') || '[{"name":"Espresso","price":35000},{"name":"Latte","price":42000},{"name":"Cappuccino","price":45000},{"name":"Americano","price":38000},{"name":"Bạc xỉu","price":40000},{"name":"Trà đào","price":39000}]'),
+      order: JSON.parse(localStorage.getItem('pc_order') || '[]'),
+      tables: JSON.parse(localStorage.getItem('pc_tables') || '[{"name":"Bàn 01","occupied":false,"updatedAt":null},{"name":"Bàn 02","occupied":false,"updatedAt":null}]'),
+      inventory: JSON.parse(localStorage.getItem('pc_inventory') || '{"coffee":60,"milk":80,"sugar":100}'),
+      history: JSON.parse(localStorage.getItem('pc_history') || '[]'),
+      discountCode: '',
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function persist() {
+      localStorage.setItem('pc_menu', JSON.stringify(state.menu));
+      localStorage.setItem('pc_order', JSON.stringify(state.order));
+      localStorage.setItem('pc_tables', JSON.stringify(state.tables));
+      localStorage.setItem('pc_inventory', JSON.stringify(state.inventory));
+      localStorage.setItem('pc_history', JSON.stringify(state.history));
+    }
+
+    function renderClock() {
+      $('clock').textContent = new Date().toLocaleString('vi-VN');
+    }
+
+    function renderMenu() {
+      $('menuList').innerHTML = '';
+      state.menu.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'item';
+        row.innerHTML = `<div><strong>${item.name}</strong><div class="muted">${VND.format(item.price)}</div></div>`;
+        const btn = document.createElement('button');
+        btn.textContent = 'Thêm vào order';
+        btn.onclick = () => addToOrder(item.name);
+        row.appendChild(btn);
+        $('menuList').appendChild(row);
+      });
+      $('ingredientSelect').innerHTML = Object.keys(state.inventory).map(k => `<option value="${k}">${k}</option>`).join('');
+    }
+
+    function renderOrder() {
+      $('orderList').innerHTML = '';
+      if (!state.order.length) {
+        $('orderList').innerHTML = '<p class="muted">Chưa có món nào trong order.</p>';
+      }
+      state.order.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'item';
+        row.innerHTML = `<div><strong>${item.name}</strong><div class="muted">${VND.format(item.price)} x ${item.qty}</div></div>`;
+        const controls = document.createElement('div');
+        controls.className = 'row';
+        const minus = document.createElement('button');
+        minus.textContent = '−';
+        minus.onclick = () => updateQty(item.name, -1);
+        const plus = document.createElement('button');
+        plus.textContent = '+';
+        plus.onclick = () => updateQty(item.name, 1);
+        const del = document.createElement('button');
+        del.textContent = 'Xóa';
+        del.className = 'danger';
+        del.onclick = () => removeItem(item.name);
+        controls.append(minus, plus, del);
+        row.appendChild(controls);
+        $('orderList').appendChild(row);
+      });
+      updateTotals();
+      persist();
+    }
+
+    function renderTables() {
+      $('tableList').innerHTML = '';
+      state.tables.forEach((t, i) => {
+        const row = document.createElement('div');
+        row.className = 'item';
+        const status = t.occupied ? 'occupied' : 'free';
+        row.innerHTML = `<div><strong>${t.name}</strong><div class="muted">${t.updatedAt ? new Date(t.updatedAt).toLocaleTimeString('vi-VN') : 'Chưa cập nhật'}</div></div>`;
+        const btn = document.createElement('button');
+        btn.className = `badge ${status}`;
+        btn.textContent = t.occupied ? 'Đang phục vụ' : 'Trống';
+        btn.onclick = () => {
+          state.tables[i].occupied = !state.tables[i].occupied;
+          state.tables[i].updatedAt = Date.now();
+          renderTables();
+          persist();
+        };
+        row.appendChild(btn);
+        $('tableList').appendChild(row);
+      });
+    }
+
+    function renderInventory() {
+      $('inventoryList').innerHTML = '';
+      Object.entries(state.inventory).forEach(([name, qty]) => {
+        const row = document.createElement('div');
+        row.className = 'item';
+        row.innerHTML = `<span>${name}</span><strong>${qty}</strong>`;
+        $('inventoryList').appendChild(row);
+      });
+      persist();
+    }
+
+    function renderHistory() {
+      $('historyList').innerHTML = '';
+      if (!state.history.length) {
+        $('historyList').innerHTML = '<p class="muted">Chưa có giao dịch nào.</p>';
+        return;
+      }
+      state.history.slice().reverse().forEach((h) => {
+        const row = document.createElement('div');
+        row.className = 'item';
+        row.innerHTML = `<div><strong>${h.id}</strong><div class="muted">${new Date(h.time).toLocaleString('vi-VN')}</div></div><strong>${VND.format(h.total)}</strong>`;
+        $('historyList').appendChild(row);
+      });
+      persist();
+    }
+
+    function addToOrder(name) {
+      const menuItem = state.menu.find((m) => m.name === name);
+      const exist = state.order.find((o) => o.name === name);
+      if (exist) exist.qty += 1;
+      else state.order.push({ name, price: menuItem.price, qty: 1 });
+      $('orderMessage').textContent = `Đã thêm ${name} vào order.`;
+      renderOrder();
+    }
+
+    function updateQty(name, delta) {
+      const item = state.order.find((o) => o.name === name);
+      if (!item) return;
+      item.qty += delta;
+      if (item.qty <= 0) state.order = state.order.filter((o) => o.name !== name);
+      renderOrder();
+    }
+
+    function removeItem(name) {
+      state.order = state.order.filter((o) => o.name !== name);
+      renderOrder();
+    }
+
+    function computeTotals() {
+      const subtotal = state.order.reduce((sum, x) => sum + x.price * x.qty, 0);
+      const vat = subtotal * 0.08;
+      const service = subtotal * 0.05;
+      const discountRate = state.discountCode === 'CAFE10' ? 0.10 : state.discountCode === 'VIP20' ? 0.20 : 0;
+      const discount = subtotal * discountRate;
+      const total = subtotal + vat + service - discount;
+      return { subtotal, vat, service, discount, total: Math.max(0, total) };
+    }
+
+    function updateTotals() {
+      const t = computeTotals();
+      $('subtotal').textContent = VND.format(t.subtotal);
+      $('vat').textContent = VND.format(t.vat);
+      $('service').textContent = VND.format(t.service);
+      $('discount').textContent = '-' + VND.format(t.discount);
+      $('total').textContent = VND.format(t.total);
+    }
+
+    function hasEnoughInventory() {
+      const need = { coffee: 0, milk: 0, sugar: 0 };
+      for (const item of state.order) {
+        const rec = recipe[item.name] || { coffee: 0, milk: 0, sugar: 0 };
+        need.coffee += rec.coffee * item.qty;
+        need.milk += rec.milk * item.qty;
+        need.sugar += rec.sugar * item.qty;
+      }
+      for (const k of Object.keys(need)) {
+        if (state.inventory[k] < need[k]) return { ok: false, ingredient: k, need: need[k], have: state.inventory[k], needMap: need };
+      }
+      return { ok: true, needMap: need };
+    }
+
+    function checkout() {
+      if (!state.order.length) {
+        $('orderMessage').textContent = 'Order đang trống.';
+        return;
+      }
+      const inv = hasEnoughInventory();
+      if (!inv.ok) {
+        $('orderMessage').textContent = `Không đủ ${inv.ingredient}: cần ${inv.need}, còn ${inv.have}.`;
+        return;
+      }
+      Object.entries(inv.needMap).forEach(([k, v]) => state.inventory[k] -= v);
+      const totals = computeTotals();
+      const sale = {
+        id: `HD-${Date.now().toString().slice(-6)}`,
+        time: Date.now(),
+        total: totals.total,
+        items: state.order.map(x => `${x.name}x${x.qty}`).join('; ')
+      };
+      state.history.push(sale);
+      state.order = [];
+      state.discountCode = '';
+      $('discountCode').value = '';
+      $('orderMessage').textContent = `Thanh toán thành công: ${sale.id}`;
+      renderOrder();
+      renderInventory();
+      renderHistory();
+      persist();
+    }
+
+    function exportCSV() {
+      if (!state.history.length) {
+        $('orderMessage').textContent = 'Không có lịch sử để xuất.';
+        return;
+      }
+      const rows = [['MaHD', 'ThoiGian', 'TongTien', 'Mon']];
+      state.history.forEach(h => rows.push([h.id, new Date(h.time).toLocaleString('vi-VN'), h.total, h.items]));
+      const csv = rows.map(r => r.map(x => `"${String(x).replaceAll('"', '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `polycafe-history-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    $('addDrink').onclick = () => {
+      const name = $('newDrink').value.trim();
+      const price = Number($('newPrice').value);
+      if (!name || !price) return;
+      if (state.menu.some(m => m.name.toLowerCase() === name.toLowerCase())) {
+        $('orderMessage').textContent = 'Món đã tồn tại trong menu.';
+        return;
+      }
+      state.menu.push({ name, price });
+      recipe[name] = { coffee: 1, milk: 1, sugar: 1 };
+      $('newDrink').value = '';
+      $('newPrice').value = '';
+      renderMenu();
+      persist();
+    };
+
+    $('addTable').onclick = () => {
+      const name = $('tableName').value.trim();
+      if (!name) return;
+      state.tables.push({ name, occupied: false, updatedAt: Date.now() });
+      $('tableName').value = '';
+      renderTables();
+      persist();
+    };
+
+    $('restockBtn').onclick = () => {
+      const ing = $('ingredientSelect').value;
+      const amount = Number($('restockAmount').value);
+      if (!ing || amount <= 0) return;
+      state.inventory[ing] += amount;
+      $('restockAmount').value = '';
+      renderInventory();
+      $('orderMessage').textContent = `Đã nhập ${amount} ${ing}.`;
+      persist();
+    };
+
+    $('applyDiscount').onclick = () => {
+      state.discountCode = $('discountCode').value;
+      updateTotals();
+      $('orderMessage').textContent = state.discountCode ? `Đã áp dụng mã ${state.discountCode}.` : 'Đã bỏ mã giảm giá.';
+    };
+
+    $('checkoutBtn').onclick = checkout;
+    $('clearOrder').onclick = () => { state.order = []; renderOrder(); $('orderMessage').textContent = 'Đã hủy order.'; };
+    $('exportCsv').onclick = exportCSV;
+    $('clearHistory').onclick = () => { state.history = []; renderHistory(); persist(); };
+
+    setInterval(renderClock, 1000);
+    renderClock();
+    renderMenu();
+    renderOrder();
+    renderTables();
+    renderInventory();
+    renderHistory();
+    updateTotals();
+  </script>
+</body>
+</html>
