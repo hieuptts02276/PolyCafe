@@ -258,7 +258,7 @@
   <script>
     const VND = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
 
-    const recipe = {
+    const defaultRecipe = {
       'Espresso': { coffee: 2, milk: 0, sugar: 1 },
       'Latte': { coffee: 2, milk: 2, sugar: 1 },
       'Cappuccino': { coffee: 2, milk: 2, sugar: 1 },
@@ -273,8 +273,15 @@
       tables: JSON.parse(localStorage.getItem('pc_tables') || '[{"name":"Bàn 01","occupied":false,"updatedAt":null},{"name":"Bàn 02","occupied":false,"updatedAt":null}]'),
       inventory: JSON.parse(localStorage.getItem('pc_inventory') || '{"coffee":60,"milk":80,"sugar":100}'),
       history: JSON.parse(localStorage.getItem('pc_history') || '[]'),
+      recipe: JSON.parse(localStorage.getItem('pc_recipe') || JSON.stringify(defaultRecipe)),
       discountCode: '',
     };
+
+    state.menu.forEach((item) => {
+      if (!state.recipe[item.name]) {
+        state.recipe[item.name] = { coffee: 1, milk: 1, sugar: 1 };
+      }
+    });
 
     const $ = (id) => document.getElementById(id);
 
@@ -284,6 +291,7 @@
       localStorage.setItem('pc_tables', JSON.stringify(state.tables));
       localStorage.setItem('pc_inventory', JSON.stringify(state.inventory));
       localStorage.setItem('pc_history', JSON.stringify(state.history));
+      localStorage.setItem('pc_recipe', JSON.stringify(state.recipe));
     }
 
     function renderClock() {
@@ -425,7 +433,7 @@
     function hasEnoughInventory() {
       const need = { coffee: 0, milk: 0, sugar: 0 };
       for (const item of state.order) {
-        const rec = recipe[item.name] || { coffee: 0, milk: 0, sugar: 0 };
+        const rec = state.recipe[item.name] || { coffee: 0, milk: 0, sugar: 0 };
         need.coffee += rec.coffee * item.qty;
         need.milk += rec.milk * item.qty;
         need.sugar += rec.sugar * item.qty;
@@ -490,7 +498,7 @@
         return;
       }
       state.menu.push({ name, price });
-      recipe[name] = { coffee: 1, milk: 1, sugar: 1 };
+      state.recipe[name] = { coffee: 1, milk: 1, sugar: 1 };
       $('newDrink').value = '';
       $('newPrice').value = '';
       renderMenu();
